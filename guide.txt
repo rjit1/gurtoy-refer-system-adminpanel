@@ -1,0 +1,224 @@
+============================================================
+REFERRAL SYSTEM WEBSITE - FULL SYSTEM GUIDE
+============================================================
+
+📦 PROJECT NAME: Referral Wallet System for MyDukan
+
+🛠 PURPOSE:
+To allow individuals to register, complete KYC, receive a referral code, and earn 5% commission on confirmed sales made through their referral code on a MyDukan.io-powered e-commerce store. Admin has full manual control of verification, referral assignment, sale tracking, and withdrawals.
+
+============================================================
+🔧 TECH STACK OVERVIEW
+============================================================
+
+📱 FRONTEND:
+- React.js
+- Next.js (with App Router)
+- TailwindCSS (for utility-first styling)
+- Framer Motion (for UI animations and transitions)
+
+🔗 BACKEND / DATABASE:
+- Supabase (PostgreSQL)
+- Supabase Auth (email login only)
+- Supabase Storage (for Aadhaar and selfie uploads)
+- Supabase Edge Functions (for wallet updates, secure backend logic)
+
+🌐 DEPLOYMENT:
+- Vercel (frontend + API endpoints)
+
+============================================================
+🎨 DESIGN & UI GUIDELINES
+============================================================
+
+🌈 COLOR SCHEME (MODERN + RICH LOOK):
+
+PRIMARY COLOR: #0077FF (Blue – trust, action)
+ACCENT COLOR:  #00C897 (Green – success, money)
+DARK SHADE:   #0B0F19 (Charcoal – depth)
+TEXT COLOR:   #1F2937 (Gray-800)
+BACKGROUND:   #F9FAFB (Ultra light gray)
+BORDER/NEUTRAL: #E5E7EB (Light border)
+
+👁️ FONTS:
+- Primary: Inter / Poppins (modern + readable)
+- Font weights: 400, 600, 700
+
+🔁 ANIMATIONS:
+- Use Framer Motion for smooth entrance animations
+- Animate section transitions, success modals, form feedback, and dashboard tiles
+
+============================================================
+🧱 FOLDER STRUCTURE
+============================================================
+
+.
+├── pages
+│   ├── index.tsx                # Landing Page
+│   ├── register.tsx             # User Registration / KYC
+│   ├── dashboard.tsx            # Referral User Dashboard
+│   ├── admin
+│   │   ├── login.tsx            # Admin Login
+│   │   └── panel.tsx            # Admin Control Panel
+│   └── api                      # Optional Next.js API routes
+│
+├── components
+│   ├── forms                    # KYCForm, WithdrawalForm
+│   ├── ui                       # Button, Modal, Card, Input
+│   └── layout                   # Header, Footer, Sidebar
+│
+├── lib
+│   ├── supabase.ts              # Supabase Client Setup
+│   ├── utils.ts                 # Helper functions
+│   └── edge.ts                  # Edge Function handlers
+│
+├── public
+│   └── assets                   # Logo, Placeholder images
+│
+├── styles
+│   └── globals.css              # Tailwind + custom CSS
+│
+└── supabase
+    ├── schema.sql               # Optional: Supabase schema
+    └── functions                # Edge Functions
+
+============================================================
+🧩 DATABASE SCHEMA (SUPABASE)
+============================================================
+
+-- Table: users
+id (uuid) PK
+email (text)
+full_name (text)
+phone (text)
+aadhaar_url (text)
+selfie_url (text)
+address (text)
+referral_code (text) - generated manually
+status (text) - ['pending', 'approved', 'rejected']
+created_at (timestamp)
+
+-- Table: referral_sales
+id (uuid) PK
+user_id (uuid) FK → users.id
+order_id (text)
+product_name (text)
+sale_amount (float)
+commission_amount (float) -- auto-calculated: 5% of sale_amount
+status (text) - ['processing', 'confirmed']
+added_by_admin (boolean)
+created_at (timestamp)
+
+-- Table: wallet
+user_id (uuid) PK → users.id
+total_earned (float)
+available_balance (float)
+last_updated (timestamp)
+
+-- Table: withdrawals
+id (uuid)
+user_id (uuid) FK → users.id
+amount (float)
+bank_details (json or text)
+status (text) - ['requested', 'paid']
+requested_at (timestamp)
+paid_at (timestamp)
+
+============================================================
+🔐 AUTHENTICATION & ACCESS
+============================================================
+
+- User signup/login with Supabase Auth (email only)
+- Admin login hardcoded (e.g., email: thegurtoy@gmail.com)
+- Admin gets full access to approve users, assign referral codes, manage sales, and withdrawals
+
+============================================================
+🧑‍💼 USER FLOW
+============================================================
+
+1. User visits `/register` → fills profile form
+   - Aadhaar and selfie upload required
+   - Status: `pending`
+
+2. Admin logs in → reviews submissions
+   - Approves user + assigns referral code
+   - Status: `approved`
+
+3. User logs into `/dashboard`
+   - Views referral code, earnings, withdrawal option
+   - Can request payout if balance ≥ ₹500
+
+4. Admin manually monitors MyDukan orders
+   - If referral code was used:
+     → Adds sale via Admin Panel
+     → Status: `processing` → `confirmed` on delivery
+     → 5% of sale added to wallet
+
+5. Admin views withdrawal requests
+   - Manually pays via UPI/bank
+   - Marks as `paid`
+
+============================================================
+🧠 EDGE FUNCTION LOGIC (supabase/functions/)
+============================================================
+
+1. `update_wallet.ts`
+   - Input: user_id, sale_amount
+   - Logic:
+     → Calculate 5%
+     → Add to total_earned and available_balance
+
+2. `request_withdrawal.ts`
+   - Input: user_id, amount
+   - Check if balance ≥ ₹500
+   - Create withdrawal request
+
+3. `confirm_withdrawal.ts`
+   - Admin-only callable
+   - Marks withdrawal as paid and deducts from balance
+
+============================================================
+📈 SCALABILITY IDEAS
+============================================================
+
+- Add referral usage analytics (clicks, conversions)
+- Enable email notifications for referral approvals & payouts
+- Integrate with Razorpay Payouts API (future)
+- Add referral link tracking with UTM parameters
+- Export sales reports (CSV)
+
+============================================================
+✅ DEPLOYMENT PLAN
+============================================================
+
+1. Supabase: Setup DB, Storage, Auth, Edge Functions
+2. Vercel: Connect Next.js repo, auto-deploy from GitHub
+3. Use environment variables:
+   - SUPABASE_URL
+   - SUPABASE_ANON_KEY
+   - ADMIN_EMAIL (for admin login verification)
+
+============================================================
+🌟 DESIGN PRINCIPLES
+============================================================
+
+- Clean and modern UI
+- High contrast CTAs (buttons in blue/green)
+- Rich visuals with card layouts
+- Responsive on mobile and desktop
+- Animate entrances and modals with Framer Motion
+- Include placeholder graphics for new users
+
+============================================================
+📌 ADMIN FEATURES CHECKLIST
+============================================================
+
+- [x] Admin login
+- [x] User verification with KYC document view
+- [x] Referral code assignment
+- [x] Add & manage referral sales
+- [x] Confirm sale → commission update
+- [x] View wallet balances
+- [x] View and process withdrawal requests
+- [x] Export data (future)
+
+============================================================
