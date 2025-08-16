@@ -51,9 +51,9 @@ Both applications share the same Supabase database but will be deployed as separ
    Project Name: gurtoy-referral-website
    Framework Preset: Next.js
    Root Directory: ./  (leave as root)
-   Build Command: npm run build
-   Output Directory: .next
-   Install Command: npm install
+   Build Command: (leave default - npm run build)
+   Output Directory: (leave default - .next)
+   Install Command: (leave default - npm install)
    ```
 
 4. **Environment Variables**
@@ -78,9 +78,9 @@ Both applications share the same Supabase database but will be deployed as separ
    Project Name: gurtoy-admin-panel
    Framework Preset: Next.js
    Root Directory: ./admin-panel
-   Build Command: npm run build
-   Output Directory: .next
-   Install Command: npm install
+   Build Command: (leave default - npm run build)
+   Output Directory: (leave default - .next)
+   Install Command: (leave default - npm install)
    ```
 
 3. **Environment Variables**
