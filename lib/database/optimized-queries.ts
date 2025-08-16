@@ -1,6 +1,6 @@
 // Optimized database queries using views and functions
 import { supabase } from '../supabase/client'
-import type { DashboardStats, UserWithWallet, WithdrawalWithUser } from '../supabase/types'
+import type { DashboardStats, Profile, Wallet, Withdrawal, UserWithWallet, WithdrawalWithUser } from '../supabase/types'
 
 // Cache for frequently accessed data
 const queryCache = new Map<string, { data: any; timestamp: number; ttl: number }>()
@@ -292,7 +292,8 @@ export async function batchUpdateWallets(updates: Array<{ userId: string; earnin
 // Cache Management
 export function clearQueryCache(pattern?: string) {
   if (pattern) {
-    for (const key of queryCache.keys()) {
+    const keys = Array.from(queryCache.keys())
+    for (const key of keys) {
       if (key.includes(pattern)) {
         queryCache.delete(key)
       }

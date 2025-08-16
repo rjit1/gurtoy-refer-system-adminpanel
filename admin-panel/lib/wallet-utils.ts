@@ -165,7 +165,8 @@ export async function recalculateAllWallets(): Promise<{ success: number; failed
     if (error) throw error
 
     // Get unique user IDs
-    const uniqueUserIds = [...new Set(usersWithOrders?.map(o => o.user_id) || [])]
+    const userIds = usersWithOrders?.map(o => o.user_id) || []
+    const uniqueUserIds = Array.from(new Set(userIds))
 
     // Update each user's wallet
     for (const userId of uniqueUserIds) {

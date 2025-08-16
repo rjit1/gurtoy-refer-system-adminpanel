@@ -50,6 +50,7 @@ export default function WithdrawalsPage() {
         amount: withdrawal.amount,
         status: withdrawal.status,
         bank_details: withdrawal.bank_details,
+        admin_notes: withdrawal.admin_notes || null,
         requested_at: withdrawal.requested_at,
         processed_at: withdrawal.processed_at,
         user: {

@@ -71,7 +71,9 @@ export default function ReferralRequestsPage() {
         status: request.status,
         referral_code: request.referral_code,
         requested_at: request.requested_at,
-        approved_at: request.approved_at,
+        processed_at: request.processed_at || null,
+        processed_by: request.processed_by || null,
+        admin_notes: request.admin_notes || null,
         user: {
           full_name: request.full_name,
           phone: request.phone,

@@ -377,3 +377,49 @@ export interface KYCApprovalForm {
   referral_code: string
   admin_notes?: string
 }
+
+// Dashboard stats interface
+export interface DashboardStats {
+  totalUsers: number
+  kycApproved: number
+  referralCodesAssigned: number
+  totalSalesAdded: number
+  totalPaidToUsers: number
+  pendingWithdrawals: number
+  pendingReferralRequests: number
+}
+
+// Extended types for admin queries
+export interface UserWithWallet {
+  id: string
+  full_name: string
+  phone: string
+  aadhaar_name: string | null
+  kyc_status: KycStatus
+  referral_code: string | null
+  aadhaar_url: string | null
+  selfie_url: string | null
+  profile_image: string | null
+  created_at: string
+  wallet?: {
+    total_earnings: number
+    available_balance: number
+    pending_earnings: number
+  }
+}
+
+export interface WithdrawalWithUser {
+  id: string
+  user_id: string
+  amount: number
+  status: WithdrawalStatus
+  bank_details: any
+  admin_notes: string | null
+  requested_at: string
+  processed_at: string | null
+  user: {
+    full_name: string
+    phone: string
+    referral_code: string | null
+  }
+}

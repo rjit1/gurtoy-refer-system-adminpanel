@@ -91,10 +91,54 @@ export interface ReferralCodeRequest {
 // Dashboard tab types
 export type DashboardTab = 'dashboard' | 'wallet' | 'referral-activity' | 'withdrawals' | 'notices'
 
+// Dashboard stats interface
+export interface DashboardStats {
+  totalUsers: number
+  kycApproved: number
+  referralCodesAssigned: number
+  totalSalesAdded: number
+  totalPaidToUsers: number
+  pendingWithdrawals: number
+  pendingReferralRequests: number
+}
+
+// Extended types for admin queries
+export interface UserWithWallet extends Profile {
+  wallet?: {
+    total_earnings: number
+    available_balance: number
+    pending_earnings: number
+  }
+}
+
+export interface WithdrawalWithUser extends Withdrawal {
+  user: {
+    full_name: string
+    phone: string
+    referral_code: string | null
+  }
+}
+
 // Bank details interface for forms
 export interface BankDetails {
   account_holder: string
   account_number: string
   ifsc: string
   upi_id?: string
+}
+
+export interface ReferralRequestWithUser {
+  id: string
+  user_id: string
+  status: string
+  referral_code: string | null
+  requested_at: string
+  processed_at: string | null
+  processed_by: string | null
+  admin_notes: string | null
+  user: {
+    full_name: string
+    phone: string
+    kyc_status: KycStatus
+  }
 }
