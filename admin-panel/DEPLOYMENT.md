@@ -20,7 +20,6 @@
 - [ ] Route protection verified
 
 ## Deployment Steps
-
 ### Option 1: Vercel Deployment (Recommended)
 
 1. **Connect Repository**
