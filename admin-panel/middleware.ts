@@ -99,7 +99,12 @@ export async function middleware(request: NextRequest) {
 
   // Production authentication logic
   // If accessing login page and already authenticated as admin, redirect to dashboard
-  if (request.nextUrl.pathname === '/login' && user?.email === ADMIN_EMAIL) {
+  const isAuthenticatedAdmin = user && (
+    (ADMIN_EMAIL && user.email === ADMIN_EMAIL) ||
+    (!ADMIN_EMAIL && user.email === 'thegurtoy@gmail.com')
+  )
+
+  if (request.nextUrl.pathname === '/login' && isAuthenticatedAdmin) {
     console.log('Redirecting authenticated admin from login to dashboard')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
@@ -113,8 +118,13 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/referral-requests')) {
 
     // Check if user is authenticated and is the admin
-    if (!user || !ADMIN_EMAIL || user.email !== ADMIN_EMAIL) {
-      console.log('Redirecting unauthenticated user to login')
+    const isAdmin = user && (
+      (ADMIN_EMAIL && user.email === ADMIN_EMAIL) ||
+      (!ADMIN_EMAIL && user.email === 'thegurtoy@gmail.com')
+    )
+
+    if (!isAdmin) {
+      console.log('Redirecting unauthenticated user to login. User:', user?.email, 'Admin Email:', ADMIN_EMAIL)
       return NextResponse.redirect(new URL('/login', request.url))
     }
 

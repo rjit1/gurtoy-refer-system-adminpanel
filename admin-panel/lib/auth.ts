@@ -109,11 +109,27 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
       return null
     }
 
-    // Verify admin status
-    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin')
+    // Verify admin status with fallback logic
+    let isAdminData = false
 
-    if (isAdminError || !isAdminData) {
-      console.log('Admin check failed:', isAdminError?.message || 'Not admin')
+    try {
+      const { data: rpcResult, error: isAdminError } = await supabase.rpc('is_admin')
+
+      if (isAdminError) {
+        console.warn('getCurrentAdmin: RPC function error, using email fallback:', isAdminError.message)
+        // Fallback: Check if email matches admin email
+        isAdminData = session.user.email === 'thegurtoy@gmail.com'
+      } else {
+        isAdminData = rpcResult
+      }
+    } catch (rpcError) {
+      console.warn('getCurrentAdmin: RPC function not available, using email fallback:', rpcError)
+      // Fallback: Check if email matches admin email
+      isAdminData = session.user.email === 'thegurtoy@gmail.com'
+    }
+
+    if (!isAdminData) {
+      console.log('getCurrentAdmin: Admin check failed - user is not admin')
       return null
     }
 
