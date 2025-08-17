@@ -51,15 +51,53 @@ export default function TestDBPage() {
         email: 'thegurtoy@gmail.com',
         password: 'Toys123@'
       })
-      
+
       if (error) {
         setResult(`❌ Auth failed: ${error.message}`)
         return
       }
-      
+
       setResult(`✅ Auth successful. User: ${data.user?.email}`)
     } catch (err: any) {
       setResult(`❌ Auth error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const testFullAuthFlow = async () => {
+    setLoading(true)
+    try {
+      // Test the complete auth flow like the login page does
+      const { signInAdmin } = await import('@/lib/auth')
+      const result = await signInAdmin('thegurtoy@gmail.com', 'Toys123@')
+
+      if (result.success) {
+        setResult(`✅ Full auth flow successful!`)
+      } else {
+        setResult(`❌ Full auth flow failed: ${result.error}`)
+      }
+    } catch (err: any) {
+      setResult(`❌ Full auth flow error: ${err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const testCurrentAdmin = async () => {
+    setLoading(true)
+    try {
+      // Test getCurrentAdmin function
+      const { getCurrentAdmin } = await import('@/lib/auth')
+      const admin = await getCurrentAdmin()
+
+      if (admin) {
+        setResult(`✅ getCurrentAdmin successful: ${admin.email}`)
+      } else {
+        setResult(`❌ getCurrentAdmin failed: No admin found`)
+      }
+    } catch (err: any) {
+      setResult(`❌ getCurrentAdmin error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -86,12 +124,28 @@ export default function TestDBPage() {
           Test is_admin() Function
         </button>
         
-        <button 
+        <button
           onClick={testAuth}
           disabled={loading}
           className="bg-purple-500 text-white px-4 py-2 rounded mr-4"
         >
           Test Authentication
+        </button>
+
+        <button
+          onClick={testFullAuthFlow}
+          disabled={loading}
+          className="bg-red-500 text-white px-4 py-2 rounded mr-4"
+        >
+          Test Full Auth Flow
+        </button>
+
+        <button
+          onClick={testCurrentAdmin}
+          disabled={loading}
+          className="bg-yellow-500 text-white px-4 py-2 rounded mr-4"
+        >
+          Test getCurrentAdmin
         </button>
       </div>
       

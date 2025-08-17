@@ -29,20 +29,31 @@ export default function LoginPage() {
       const result = await signInAdmin(email, password)
       console.log('Login: Authentication successful:', !!result.session)
 
-      // Ensure session is properly established
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!result.session) {
+        throw new Error('No session created during login')
+      }
+
+      // Store session info for middleware
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gurtoy-admin-session', 'true')
+        localStorage.setItem('gurtoy-admin-email', result.user.email!)
+      }
+
+      // Wait for session to be fully established
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
       // Verify session one more time before redirect
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('Login: Final session check:', !!session)
+      console.log('Login: Final session check:', !!session, 'User:', session?.user?.email)
 
-      if (session) {
-        console.log('Login: Session confirmed, redirecting to dashboard')
+      if (session && session.user.email === 'thegurtoy@gmail.com') {
+        console.log('Login: Admin session confirmed, redirecting to dashboard')
         // Use window.location for a hard redirect to ensure middleware picks up the session
         window.location.href = '/dashboard'
       } else {
-        console.log('Login: No session found after login, using router.push')
-        router.push('/dashboard')
+        console.error('Login: Session verification failed')
+        setError('Session verification failed. Please try again.')
+        setLoading(false)
       }
     } catch (err: any) {
       console.error('Login: Authentication failed:', err)
