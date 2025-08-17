@@ -24,11 +24,27 @@ export async function signInAdmin(email: string, password: string) {
 
     console.log('Auth successful, session created:', !!authData.session)
 
-    // Check if user is admin using RPC
-    const { data: isAdminData, error: isAdminError } = await supabase.rpc('is_admin')
+    // Check if user is admin using RPC with fallback
+    let isAdminData = false
 
-    if (isAdminError || !isAdminData) {
-      console.error('Admin check failed:', isAdminError)
+    try {
+      const { data: rpcResult, error: isAdminError } = await supabase.rpc('is_admin')
+
+      if (isAdminError) {
+        console.warn('RPC function error, using email fallback:', isAdminError.message)
+        // Fallback: Check if email matches admin email
+        isAdminData = authData.user.email === 'thegurtoy@gmail.com'
+      } else {
+        isAdminData = rpcResult
+      }
+    } catch (rpcError) {
+      console.warn('RPC function not available, using email fallback:', rpcError)
+      // Fallback: Check if email matches admin email
+      isAdminData = authData.user.email === 'thegurtoy@gmail.com'
+    }
+
+    if (!isAdminData) {
+      console.error('Admin check failed - user is not admin')
       await supabase.auth.signOut()
       throw new Error('Access denied - Admin privileges required')
     }
