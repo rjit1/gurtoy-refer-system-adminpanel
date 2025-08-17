@@ -7,7 +7,6 @@ This repository contains two separate Next.js applications:
 - **Admin Panel** (admin-panel/): Administrative interface
 
 Both applications share the same Supabase database but will be deployed as separate Vercel projects.
-
 ## ✅ Pre-Deployment Checklist
 
 ### 1. GitHub Repository ✅
