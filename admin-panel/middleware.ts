@@ -19,6 +19,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // If ADMIN_EMAIL is not configured, disable middleware protection
+  if (!ADMIN_EMAIL) {
+    console.log('Middleware - ADMIN_EMAIL not configured, allowing all requests')
+
+    // Only redirect from root to login
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    return NextResponse.next()
+  }
+
   // Production middleware logic (keep original for production)
   let response = NextResponse.next({
     request: {
@@ -78,6 +90,12 @@ export async function middleware(request: NextRequest) {
   console.log('Middleware - User:', user?.email)
   console.log('Middleware - Error:', error?.message || 'none')
   console.log('Middleware - Admin Email:', ADMIN_EMAIL)
+
+  // Handle root path redirect
+  if (request.nextUrl.pathname === '/') {
+    console.log('Middleware - Redirecting root to login')
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
 
   // Production authentication logic
   // If accessing login page and already authenticated as admin, redirect to dashboard
