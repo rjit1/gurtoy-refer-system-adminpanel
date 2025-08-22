@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react'
 import AuthGuard from '@/components/auth/AuthGuard'
-import DashboardLayout from '@/components/layout/DashboardLayout'
 
 export default function DashboardRootLayout({
   children,
@@ -11,9 +10,7 @@ export default function DashboardRootLayout({
 }) {
   return (
     <AuthGuard>
-      <DashboardLayout>
-        {children}
-      </DashboardLayout>
+      {children}
     </AuthGuard>
   )
 }

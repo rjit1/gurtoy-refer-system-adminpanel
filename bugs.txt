@@ -1,0 +1,15 @@
+do a comprehensive analysis in the project which we have build check all the files and all the related files to get better deep understanding about the project 
+
+their is one main website and one admin panel
+
+
+
+do deeply ananlysis then tell me what bugs we have currently and how we can resolved them 
+
+
+
+guide.txt
+
+
+
+and supbase folder for all supabase sql codess these will also help you to get better understanding.
