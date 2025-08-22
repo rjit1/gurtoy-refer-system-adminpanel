@@ -92,6 +92,7 @@ export default function WithdrawalsPage() {
 
     setProcessing(true)
     try {
+      // 1. First update the withdrawal status
       const updates: any = {
         status: action === 'approve' ? 'processed' : 'rejected',
         processed_at: new Date().toISOString(),
@@ -108,18 +109,18 @@ export default function WithdrawalsPage() {
       if (error) throw error
 
       if (action === 'approve') {
-        // Update wallet balance
-        const { error: walletError } = await supabase
-          .from('wallets')
-          .update({
-            available_balance: selectedWithdrawal.user ? 
-              (selectedWithdrawal.user as any).wallet?.available_balance - selectedWithdrawal.amount : 0
-          })
-          .eq('user_id', selectedWithdrawal.user_id)
+        // 2. Import wallet utilities
+        const { updateUserWallet } = await import('@/lib/wallet-utils')
+        
+        // 3. Update the wallet using the centralized function
+        // This will recalculate all balances correctly based on orders and withdrawals
+        const success = await updateUserWallet(selectedWithdrawal.user_id)
+        
+        if (!success) {
+          throw new Error('Failed to update wallet balance')
+        }
 
-        if (walletError) throw walletError
-
-        // Create notification
+        // 4. Create notification for user
         await supabase
           .from('notifications')
           .insert({
@@ -129,7 +130,7 @@ export default function WithdrawalsPage() {
             message: `Your withdrawal of ${formatCurrency(selectedWithdrawal.amount)} has been processed and will be credited to your account within 2-3 business days.`
           })
 
-        // Create admin notice
+        // 5. Create admin notice
         await supabase
           .from('notices')
           .insert({

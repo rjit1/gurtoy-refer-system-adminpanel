@@ -16,6 +16,7 @@ import {
 import Button from '../ui/Button'
 import { supabase } from '../../lib/supabase/client'
 import type { Withdrawal, WithdrawalStatus, Wallet } from '../../lib/supabase/types'
+import { calculateUserEarnings } from '../../lib/wallet-utils'
 
 interface WithdrawalsTabProps {
   userId: string
@@ -55,69 +56,20 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
     }
   }, [userId])
 
-  // Calculate earnings based on order status - same logic as WalletTab
+  // Use the centralized calculation function from wallet-utils.ts
   const calculateEarnings = useCallback(async () => {
     if (!userId) return
     
     try {
       setLoadingEarnings(true)
       
-      // Fetch all orders for the user
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-
-      if (error) {
-        console.error('Error fetching orders:', error)
-        // If there's an error, use wallet data as fallback
-        if (wallet) {
-          setEarningsData({
-            totalEarnings: Number(wallet.total_earnings) || 0,
-            pendingEarnings: Number(wallet.pending_earnings) || 0,
-            availableBalance: Number(wallet.available_balance) || 0
-          })
-        }
-        return
-      }
-
-      // Calculate earnings based on order status
-      let totalEarnings = 0
-      let pendingEarnings = 0
-      let availableBalance = 0
-
-      if (orders && orders.length > 0) {
-        orders.forEach((order) => {
-          const commission = order.price * 0.05 // 5% commission
-
-          if (order.status === 'delivered') {
-            // Delivered orders contribute to both total and available balance
-            totalEarnings += commission
-            availableBalance += commission
-          } else if (order.status === 'pending' || order.status === 'processing') {
-            // Pending/processing orders contribute to total and pending earnings
-            totalEarnings += commission
-            pendingEarnings += commission
-          }
-        })
-
-        // Subtract any withdrawn amounts (both processed and pending) from available balance
-        const { data: withdrawals } = await supabase
-          .from('withdrawals')
-          .select('amount, status')
-          .eq('user_id', userId)
-          .in('status', ['processed', 'pending'])
-
-        if (withdrawals && withdrawals.length > 0) {
-          const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0)
-          availableBalance = Math.max(0, availableBalance - totalWithdrawn)
-        }
-      }
-
+      // Use the centralized calculation function
+      const earnings = await calculateUserEarnings(userId)
+      
       setEarningsData({
-        totalEarnings,
-        pendingEarnings,
-        availableBalance
+        totalEarnings: earnings.totalEarnings,
+        pendingEarnings: earnings.pendingEarnings,
+        availableBalance: earnings.availableBalance
       })
 
     } catch (error) {
@@ -147,7 +99,7 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
 
     const amount = parseFloat(withdrawAmount)
     const availableBalance = earningsData.availableBalance
-    if (amount < 500 || amount >= availableBalance) return
+    if (amount < 500 || amount > availableBalance) return
 
     try {
       setRequesting(true)
@@ -156,6 +108,8 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
         .insert({
           user_id: userId,
           amount: amount,
+          status: 'pending',
+          requested_at: new Date().toISOString(),
           bank_details: {
             account_holder: wallet.bank_account_holder,
             account_number: wallet.bank_account_number,
@@ -176,11 +130,19 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
           message: `Your withdrawal request of ₹${amount.toFixed(2)} has been submitted and is under review.`
         })
 
-      // Refresh withdrawals list and recalculate earnings
-      await fetchWithdrawals()
-      await calculateEarnings()
+      // Close modal and reset form first
       setShowRequestModal(false)
       setWithdrawAmount('')
+      
+      // Then refresh withdrawals list and recalculate earnings
+      await fetchWithdrawals()
+      
+      // Force recalculation of earnings to update available balance
+      // This ensures the UI reflects the pending withdrawal immediately
+      await calculateEarnings()
+      
+      // Show alert notification to explain the balance change
+      alert("Balance Updated: Your available balance has been updated to reflect the pending withdrawal.")
     } catch (error) {
       console.error('Error requesting withdrawal:', error)
     } finally {
@@ -235,6 +197,9 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
   const pendingAmount = withdrawals
     .filter(w => w.status === 'pending')
     .reduce((sum, w) => sum + w.amount, 0)
+    
+  // Define pendingWithdrawals for use in the UI
+  const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending')
 
   return (
     <div className="space-y-6">
@@ -472,15 +437,20 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
               
               <div className="text-sm text-gray-600 space-y-1">
                 <div>Available balance: ₹{earningsData.availableBalance.toFixed(2)}</div>
-                <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
-                  <div className="flex items-start space-x-2">
-                    <div className="text-amber-500 mt-0.5">ℹ️</div>
-                    <div>
-                      <div className="font-medium">Withdrawal Note:</div>
-                      <div className="text-xs">You cannot withdraw the full available amount. Please leave at least ₹1 in your account for processing fees and system maintenance.</div>
+                
+                {/* Show pending withdrawals if any */}
+                {pendingWithdrawals.length > 0 && (
+                  <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    <div className="flex items-start space-x-2">
+                      <div className="text-amber-500 mt-0.5">ℹ️</div>
+                      <div>
+                        <div className="font-medium">Pending Withdrawals:</div>
+                        <div className="text-xs">You have ₹{pendingWithdrawals.reduce((sum, w) => sum + w.amount, 0).toFixed(2)} in pending withdrawal requests.</div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+                
                 <div>Processing time: 1-3 business days</div>
               </div>
 
@@ -499,25 +469,40 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
                 </div>
               )}
               
-              <div className="flex items-center space-x-3 pt-4">
-                <Button
-                  onClick={handleWithdrawRequest}
-                  disabled={requesting || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) >= earningsData.availableBalance}
-                  className="flex-1"
-                >
-                  {requesting ? 'Processing...' : 'Request Withdrawal'}
-                </Button>
+              <div className="flex flex-col space-y-3 pt-4">
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={handleWithdrawRequest}
+                    disabled={requesting || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) > earningsData.availableBalance}
+                    className="flex-1"
+                  >
+                    {requesting ? 'Processing...' : 'Request Withdrawal'}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRequestModal(false)
+                      setWithdrawAmount('')
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
                 
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowRequestModal(false)
-                    setWithdrawAmount('')
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
+                {earningsData.availableBalance > 0 && (
+                  <Button
+                    onClick={() => {
+                      setWithdrawAmount(earningsData.availableBalance.toString())
+                      // If balance is less than minimum, we'll handle it in the modified handleWithdrawRequest
+                    }}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Withdraw All (₹{earningsData.availableBalance.toFixed(2)})
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>

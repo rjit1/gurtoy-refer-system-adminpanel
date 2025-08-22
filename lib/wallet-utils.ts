@@ -16,7 +16,7 @@ export const COMMISSION_RATE = 0.05
 // Minimum withdrawal amount
 export const MIN_WITHDRAWAL_AMOUNT = 500
 
-// Calculate user earnings from orders
+// Calculate user earnings from orders - CENTRALIZED CALCULATION LOGIC
 export async function calculateUserEarnings(userId: string): Promise<WalletCalculation> {
   try {
     // Get all orders for the user
@@ -33,6 +33,8 @@ export async function calculateUserEarnings(userId: string): Promise<WalletCalcu
       .select('amount, status')
       .eq('user_id', userId)
       .in('status', ['processed', 'pending'])
+      
+    console.log('Withdrawals for calculation:', withdrawals)
 
     if (withdrawalsError) throw withdrawalsError
 
@@ -64,12 +66,26 @@ export async function calculateUserEarnings(userId: string): Promise<WalletCalcu
 
     // Subtract processed and pending withdrawals from available balance
     if (withdrawals && withdrawals.length > 0) {
-      const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0)
-      availableBalance = Math.max(0, availableBalance - totalWithdrawn)
+      // Calculate total processed withdrawals
+      const processedWithdrawals = withdrawals
+        .filter(w => w.status === 'processed')
+        .reduce((sum, w) => sum + w.amount, 0)
+      
+      // Calculate total pending withdrawals
+      const pendingWithdrawals = withdrawals
+        .filter(w => w.status === 'pending')
+        .reduce((sum, w) => sum + w.amount, 0)
+      
+      // Subtract both from available balance
+      availableBalance = Math.max(0, availableBalance - processedWithdrawals - pendingWithdrawals)
+      
+      // Add pending withdrawals to pendingEarnings for better visibility
+      pendingEarnings += pendingWithdrawals
     }
 
+    // Round all monetary values to 2 decimal places
     return {
-      totalEarnings: Math.round(totalEarnings * 100) / 100, // Round to 2 decimal places
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
       pendingEarnings: Math.round(pendingEarnings * 100) / 100,
       availableBalance: Math.round(availableBalance * 100) / 100,
       totalOrders,
@@ -102,6 +118,8 @@ export async function updateUserWallet(userId: string): Promise<boolean> {
         pending_earnings: earnings.pendingEarnings,
         available_balance: earnings.availableBalance,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id' // Ensure we update based on user_id conflict
       })
 
     if (error) throw error
@@ -127,8 +145,8 @@ export function validateWithdrawalRequest(
     return { isValid: false, error: `Minimum withdrawal amount is ₹${MIN_WITHDRAWAL_AMOUNT}` }
   }
 
-  if (amount >= availableBalance) {
-    return { isValid: false, error: 'Cannot withdraw the full amount. Please leave at least ₹1 in your account.' }
+  if (amount > availableBalance) {
+    return { isValid: false, error: 'Withdrawal amount exceeds your available balance.' }
   }
 
   if (amount <= 0) {

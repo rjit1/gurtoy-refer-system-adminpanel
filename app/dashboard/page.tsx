@@ -112,12 +112,12 @@ export default function DashboardPage() {
         console.log('Dashboard - Wallet loaded:', walletData)
       }
 
-      // Create wallet if it doesn't exist
+      // Create wallet if it doesn't exist or update existing one
       if (!walletData && currentProfile) {
-        console.log('Dashboard - Creating new wallet for user:', user.id)
+        console.log('Dashboard - Creating/updating wallet for user:', user.id)
         const { data: newWallet, error: createWalletError } = await supabase
           .from('wallets')
-          .insert({
+          .upsert({
             user_id: user.id,
             total_earnings: 0,
             pending_earnings: 0,
@@ -126,16 +126,19 @@ export default function DashboardPage() {
             bank_account_holder: null,
             bank_account_number: null,
             bank_ifsc: null,
-            upi_id: null
+            upi_id: null,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id' // Handle conflict on user_id
           })
           .select('*')
           .single()
 
         if (createWalletError) {
-          console.error('Dashboard - Error creating wallet:', createWalletError)
+          console.error('Dashboard - Error creating/updating wallet:', createWalletError)
         } else {
           walletData = newWallet
-          console.log('Dashboard - Wallet created successfully:', newWallet)
+          console.log('Dashboard - Wallet created/updated successfully:', newWallet)
         }
       }
 

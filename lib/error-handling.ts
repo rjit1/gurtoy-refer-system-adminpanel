@@ -11,7 +11,13 @@ export enum ErrorType {
   FILE_UPLOAD = 'FILE_UPLOAD',
   RATE_LIMIT = 'RATE_LIMIT',
   SERVER = 'SERVER',
-  UNKNOWN = 'UNKNOWN'
+  UNKNOWN = 'UNKNOWN',
+  // Application-specific error types
+  WALLET = 'WALLET',
+  WITHDRAWAL = 'WITHDRAWAL',
+  KYC = 'KYC',
+  REFERRAL = 'REFERRAL',
+  ORDER = 'ORDER'
 }
 
 export interface AppError {
@@ -73,6 +79,57 @@ export function classifyError(error: any): AppError {
       type: ErrorType.VALIDATION,
       message: error.message,
       userMessage: 'Please check your input and try again.',
+      timestamp,
+      stack: error.stack
+    }
+  }
+
+  // Application-specific errors
+  if (error.message?.includes('wallet') || error.context === 'wallet') {
+    return {
+      type: ErrorType.WALLET,
+      message: error.message || 'Wallet operation failed',
+      userMessage: 'Unable to process wallet operation. Please try again.',
+      timestamp,
+      stack: error.stack
+    }
+  }
+
+  if (error.message?.includes('withdrawal') || error.context === 'withdrawal') {
+    return {
+      type: ErrorType.WITHDRAWAL,
+      message: error.message || 'Withdrawal operation failed',
+      userMessage: 'Unable to process withdrawal. Please try again later.',
+      timestamp,
+      stack: error.stack
+    }
+  }
+
+  if (error.message?.includes('kyc') || error.context === 'kyc') {
+    return {
+      type: ErrorType.KYC,
+      message: error.message || 'KYC verification failed',
+      userMessage: 'Unable to verify your documents. Please check and try again.',
+      timestamp,
+      stack: error.stack
+    }
+  }
+
+  if (error.message?.includes('referral') || error.context === 'referral') {
+    return {
+      type: ErrorType.REFERRAL,
+      message: error.message || 'Referral operation failed',
+      userMessage: 'Unable to process referral. Please try again.',
+      timestamp,
+      stack: error.stack
+    }
+  }
+
+  if (error.message?.includes('order') || error.context === 'order') {
+    return {
+      type: ErrorType.ORDER,
+      message: error.message || 'Order operation failed',
+      userMessage: 'Unable to process order. Please try again.',
       timestamp,
       stack: error.stack
     }
@@ -322,6 +379,41 @@ export function getErrorRecoveryActions(error: AppError): string[] {
         'Check file size (must be under 5MB)',
         'Verify file format is supported',
         'Try uploading a different file'
+      ]
+    
+    case ErrorType.WALLET:
+      return [
+        'Check your wallet balance',
+        'Verify your bank details are correct',
+        'Try the operation again after a few minutes'
+      ]
+    
+    case ErrorType.WITHDRAWAL:
+      return [
+        'Verify you have sufficient balance',
+        'Check your bank details are correct',
+        'Make sure you meet the minimum withdrawal amount'
+      ]
+    
+    case ErrorType.KYC:
+      return [
+        'Ensure your documents are clear and readable',
+        'Verify you uploaded the correct document types',
+        'Make sure your selfie matches your ID document'
+      ]
+    
+    case ErrorType.REFERRAL:
+      return [
+        'Check if the referral code is valid',
+        'Verify your KYC is approved',
+        'Contact support for assistance with referrals'
+      ]
+    
+    case ErrorType.ORDER:
+      return [
+        'Check if the order details are correct',
+        'Verify the product is available',
+        'Try placing the order again'
       ]
     
     default:

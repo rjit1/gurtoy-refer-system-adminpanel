@@ -4,6 +4,7 @@ export type OrderStatus = 'processing' | 'delivered' | 'pending'
 export type WithdrawalStatus = 'pending' | 'processed' | 'rejected'
 export type ReferralRequestStatus = 'pending' | 'approved' | 'rejected'
 export type NotificationType = 'kyc_submitted' | 'kyc_approved' | 'kyc_rejected' | 'referral_code_requested' | 'referral_generated' | 'referral_sale' | 'commission_added' | 'withdrawal_processed' | 'withdrawal_rejected'
+export type UserRole = 'user' | 'admin' | 'super_admin'
 
 export interface Profile {
   id: string // auth.user id
@@ -141,4 +142,12 @@ export interface ReferralRequestWithUser {
     phone: string
     kyc_status: KycStatus
   }
+}
+
+export interface UserRoleRecord {
+  id: string
+  user_id: string
+  role: UserRole
+  created_at: string
+  updated_at: string
 }

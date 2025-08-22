@@ -3,18 +3,111 @@ import { supabase } from './supabase/client'
 
 export const COMMISSION_RATE = 0.05
 
-// Update user wallet after order creation/update
-export async function updateUserWalletAfterOrder(
-  userId: string,
-  orderPrice: number,
-  orderStatus: string,
-  oldStatus?: string
-): Promise<boolean> {
-  try {
-    // Calculate commission
-    const commission = orderPrice * COMMISSION_RATE
+// Interface for wallet calculation results
+export interface WalletCalculation {
+  totalEarnings: number
+  pendingEarnings: number
+  availableBalance: number
+  totalOrders: number
+  deliveredOrders: number
+  pendingOrders: number
+}
 
-    // Get current wallet data
+// Calculate user earnings from orders - CENTRALIZED CALCULATION LOGIC
+export async function calculateUserEarnings(userId: string): Promise<WalletCalculation> {
+  try {
+    // Get all orders for the user
+    const { data: orders, error: ordersError } = await supabase
+      .from('orders')
+      .select('price, status')
+      .eq('user_id', userId)
+
+    if (ordersError) throw ordersError
+
+    // Get all withdrawals (processed and pending)
+    const { data: withdrawals, error: withdrawalsError } = await supabase
+      .from('withdrawals')
+      .select('amount, status')
+      .eq('user_id', userId)
+      .in('status', ['processed', 'pending'])
+      
+    console.log('Admin - Withdrawals for calculation:', withdrawals)
+
+    if (withdrawalsError) throw withdrawalsError
+
+    let totalEarnings = 0
+    let pendingEarnings = 0
+    let availableBalance = 0
+    let totalOrders = 0
+    let deliveredOrders = 0
+    let pendingOrders = 0
+
+    // Calculate earnings from orders
+    if (orders && orders.length > 0) {
+      totalOrders = orders.length
+
+      orders.forEach((order) => {
+        const commission = order.price * COMMISSION_RATE
+
+        if (order.status === 'delivered') {
+          totalEarnings += commission
+          availableBalance += commission
+          deliveredOrders++
+        } else if (order.status === 'pending' || order.status === 'processing') {
+          totalEarnings += commission
+          pendingEarnings += commission
+          pendingOrders++
+        }
+      })
+    }
+
+    // Subtract processed and pending withdrawals from available balance
+    if (withdrawals && withdrawals.length > 0) {
+      // Calculate total processed withdrawals
+      const processedWithdrawals = withdrawals
+        .filter(w => w.status === 'processed')
+        .reduce((sum, w) => sum + w.amount, 0)
+      
+      // Calculate total pending withdrawals
+      const pendingWithdrawals = withdrawals
+        .filter(w => w.status === 'pending')
+        .reduce((sum, w) => sum + w.amount, 0)
+      
+      // Subtract both from available balance
+      availableBalance = Math.max(0, availableBalance - processedWithdrawals - pendingWithdrawals)
+      
+      // Add pending withdrawals to pendingEarnings for better visibility
+      pendingEarnings += pendingWithdrawals
+    }
+
+    // Round all monetary values to 2 decimal places
+    return {
+      totalEarnings: Math.round(totalEarnings * 100) / 100,
+      pendingEarnings: Math.round(pendingEarnings * 100) / 100,
+      availableBalance: Math.round(availableBalance * 100) / 100,
+      totalOrders,
+      deliveredOrders,
+      pendingOrders
+    }
+  } catch (error) {
+    console.error('Error calculating user earnings:', error)
+    return {
+      totalEarnings: 0,
+      pendingEarnings: 0,
+      availableBalance: 0,
+      totalOrders: 0,
+      deliveredOrders: 0,
+      pendingOrders: 0
+    }
+  }
+}
+
+// Update user wallet with calculated earnings
+export async function updateUserWallet(userId: string): Promise<boolean> {
+  try {
+    const earnings = await calculateUserEarnings(userId)
+
+    // Get current wallet data to preserve bank details
     const { data: currentWallet, error: walletError } = await supabase
       .from('wallets')
       .select('*')
@@ -26,55 +119,14 @@ export async function updateUserWalletAfterOrder(
       return false
     }
 
-    // Calculate new earnings based on all orders
-    const { data: orders, error: ordersError } = await supabase
-      .from('orders')
-      .select('price, status')
-      .eq('user_id', userId)
-
-    if (ordersError) {
-      console.error('Error fetching orders:', ordersError)
-      return false
-    }
-
-    let totalEarnings = 0
-    let pendingEarnings = 0
-    let availableBalance = 0
-
-    if (orders && orders.length > 0) {
-      orders.forEach((order) => {
-        const orderCommission = order.price * COMMISSION_RATE
-
-        if (order.status === 'delivered') {
-          totalEarnings += orderCommission
-          availableBalance += orderCommission
-        } else if (order.status === 'pending' || order.status === 'processing') {
-          totalEarnings += orderCommission
-          pendingEarnings += orderCommission
-        }
-      })
-    }
-
-    // Subtract processed withdrawals from available balance
-    const { data: withdrawals } = await supabase
-      .from('withdrawals')
-      .select('amount')
-      .eq('user_id', userId)
-      .eq('status', 'processed')
-
-    if (withdrawals && withdrawals.length > 0) {
-      const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0)
-      availableBalance = Math.max(0, availableBalance - totalWithdrawn)
-    }
-
     // Update or insert wallet record
     const { error: updateError } = await supabase
       .from('wallets')
       .upsert({
         user_id: userId,
-        total_earnings: Math.round(totalEarnings * 100) / 100,
-        pending_earnings: Math.round(pendingEarnings * 100) / 100,
-        available_balance: Math.round(availableBalance * 100) / 100,
+        total_earnings: earnings.totalEarnings,
+        pending_earnings: earnings.pendingEarnings,
+        available_balance: earnings.availableBalance,
         updated_at: new Date().toISOString(),
         // Preserve existing bank details
         ...(currentWallet && {
@@ -84,10 +136,37 @@ export async function updateUserWalletAfterOrder(
           upi_id: currentWallet.upi_id,
           bank_details_submitted: currentWallet.bank_details_submitted
         })
+      }, {
+        onConflict: 'user_id' // Ensure we update based on user_id conflict
       })
 
     if (updateError) {
       console.error('Error updating wallet:', updateError)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error updating user wallet:', error)
+    return false
+  }
+}
+
+// Update user wallet after order creation/update
+export async function updateUserWalletAfterOrder(
+  userId: string,
+  orderPrice: number,
+  orderStatus: string,
+  oldStatus?: string
+): Promise<boolean> {
+  try {
+    // Calculate commission
+    const commission = orderPrice * COMMISSION_RATE
+
+    // Use the centralized calculation function to update the wallet
+    const success = await updateUserWallet(userId)
+    
+    if (!success) {
       return false
     }
 

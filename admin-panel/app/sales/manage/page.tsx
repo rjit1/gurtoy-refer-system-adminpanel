@@ -178,31 +178,25 @@ export default function ManageSalesPage() {
             .eq('user_id', orderData.user_id)
             .single()
 
-          if (walletError && walletError.code === 'PGRST116') {
-            // Create wallet if doesn't exist
-            const { error: createWalletError } = await supabase
-              .from('wallets')
-              .insert({
-                user_id: orderData.user_id,
-                total_earnings: commission,
-                available_balance: commission,
-                pending_earnings: 0
-              })
+          // Use upsert to handle both new and existing wallets
+          const totalEarnings = wallet ? wallet.total_earnings + commission : commission;
+          const availableBalance = wallet ? wallet.available_balance + commission : commission;
+          
+          const { error: upsertWalletError } = await supabase
+            .from('wallets')
+            .upsert({
+              user_id: orderData.user_id,
+              total_earnings: totalEarnings,
+              available_balance: availableBalance,
+              pending_earnings: wallet ? wallet.pending_earnings : 0,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'user_id' // Handle conflict on user_id
+            })
 
-            if (createWalletError) throw createWalletError
-          } else if (walletError) {
-            throw walletError
-          } else {
-            // Update existing wallet
-            const { error: updateWalletError } = await supabase
-              .from('wallets')
-              .update({
-                total_earnings: wallet.total_earnings + commission,
-                available_balance: wallet.available_balance + commission
-              })
-              .eq('user_id', orderData.user_id)
-
-            if (updateWalletError) throw updateWalletError
+          if (upsertWalletError) {
+            console.error('Error updating wallet:', upsertWalletError);
+            throw upsertWalletError;
           }
 
           // Create notification for commission

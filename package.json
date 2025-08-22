@@ -12,6 +12,7 @@
     "@supabase/ssr": "^0.4.0",
     "@supabase/supabase-js": "^2.55.0",
     "@tailwindcss/typography": "^0.5.16",
+    "dotenv": "^17.2.1",
     "framer-motion": "^10.18.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.263.1",

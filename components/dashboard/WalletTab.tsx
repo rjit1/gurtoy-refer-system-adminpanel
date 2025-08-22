@@ -15,6 +15,7 @@ import {
   X,
   AlertCircle
 } from 'lucide-react'
+import { useToast } from '../ui/Toast'
 import Button from '../ui/Button'
 import { supabase } from '../../lib/supabase/client'
 import type { Profile, Wallet as WalletType, BankDetails, Order } from '../../lib/supabase/types'
@@ -41,6 +42,7 @@ interface EarningsData {
 }
 
 export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateToWithdrawals }: WalletTabProps) {
+  const toast = useToast()
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [editingBankDetails, setEditingBankDetails] = useState(false)
   const [bankDetails, setBankDetails] = useState<BankDetails>({
@@ -57,6 +59,28 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
     pendingEarnings: 0,
     availableBalance: 0
   })
+  
+  // Add state for withdrawals
+  const [withdrawals, setWithdrawals] = useState<any[]>([])
+  
+  // Function to fetch withdrawals
+  const fetchWithdrawals = useCallback(async () => {
+    if (!profile.id) return
+    
+    try {
+      const { data, error } = await supabase
+        .from('withdrawals')
+        .select('*')
+        .eq('user_id', profile.id)
+        .order('requested_at', { ascending: false })
+      
+      if (error) throw error
+      
+      setWithdrawals(data || [])
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error)
+    }
+  }, [profile.id])
   const [loadingEarnings, setLoadingEarnings] = useState(true)
 
   // Update bank details state when wallet data changes
@@ -86,75 +110,20 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
   const canWithdraw = earningsData.availableBalance >= MIN_WITHDRAWAL_AMOUNT
   const hasBankDetails = wallet?.bank_details_submitted
 
-  // Calculate earnings based on order status
+  // Use the centralized calculation function from wallet-utils.ts
   const calculateEarnings = useCallback(async () => {
     if (!profile.id) return
     
     try {
       setLoadingEarnings(true)
       
-      // Fetch all orders for the user
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', profile.id)
-
-      if (error) {
-        console.error('Error fetching orders:', error)
-        // If there's an error, use wallet data as fallback
-        if (wallet) {
-          setEarningsData({
-            totalEarnings: Number(wallet.total_earnings) || 0,
-            pendingEarnings: Number(wallet.pending_earnings) || 0,
-            availableBalance: Number(wallet.available_balance) || 0
-          })
-        } else {
-          setEarningsData({
-            totalEarnings: 0,
-            pendingEarnings: 0,
-            availableBalance: 0
-          })
-        }
-        return
-      }
-
-      // Calculate earnings based on order status
-      let totalEarnings = 0
-      let pendingEarnings = 0
-      let availableBalance = 0
-
-      if (orders && orders.length > 0) {
-        orders.forEach((order: Order) => {
-          const commission = order.price * 0.05 // 5% commission
-
-          if (order.status === 'delivered') {
-            // Delivered orders contribute to both total and available balance
-            totalEarnings += commission
-            availableBalance += commission
-          } else if (order.status === 'pending' || order.status === 'processing') {
-            // Pending/processing orders contribute to total and pending earnings
-            totalEarnings += commission
-            pendingEarnings += commission
-          }
-        })
-
-        // Subtract any withdrawn amounts (both processed and pending) from available balance
-        const { data: withdrawals } = await supabase
-          .from('withdrawals')
-          .select('amount, status')
-          .eq('user_id', profile.id)
-          .in('status', ['processed', 'pending'])
-
-        if (withdrawals && withdrawals.length > 0) {
-          const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0)
-          availableBalance = Math.max(0, availableBalance - totalWithdrawn)
-        }
-      }
-
+      // Use the centralized calculation function
+      const earnings = await calculateUserEarnings(profile.id)
+      
       setEarningsData({
-        totalEarnings,
-        pendingEarnings,
-        availableBalance
+        totalEarnings: earnings.totalEarnings,
+        pendingEarnings: earnings.pendingEarnings,
+        availableBalance: earnings.availableBalance
       })
 
       // Update wallet in database with calculated values if wallet exists
@@ -162,9 +131,9 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
         const { error: updateError } = await supabase
           .from('wallets')
           .update({
-            total_earnings: totalEarnings,
-            pending_earnings: pendingEarnings,
-            available_balance: availableBalance
+            total_earnings: earnings.totalEarnings,
+            pending_earnings: earnings.pendingEarnings,
+            available_balance: earnings.availableBalance
           })
           .eq('user_id', profile.id)
 
@@ -196,9 +165,12 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
 
   useEffect(() => {
     if (profile.id && wallet) {
+      // Fetch withdrawals first to ensure they're available for UI display
+      fetchWithdrawals()
+      // Then calculate earnings which will use the withdrawal data
       calculateEarnings()
     }
-  }, [profile.id, wallet, calculateEarnings])
+  }, [profile.id, wallet, calculateEarnings, fetchWithdrawals])
 
   const handleBankDetailsSubmit = async () => {
     if (!wallet || !profile.id) return
@@ -306,11 +278,25 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
         return
       }
 
+      // Close modal and reset form first
       setShowWithdrawModal(false)
       setWithdrawAmount('')
 
+      // Fetch withdrawals to update the UI with the new pending withdrawal
+      await fetchWithdrawals()
+      
       // Recalculate earnings after withdrawal request
+      // This ensures the available balance is updated to reflect the pending withdrawal
       await calculateEarnings()
+      
+      // Show toast notification to explain the balance change
+      toast({
+        title: "Balance Updated",
+        description: "Your available balance has been updated to reflect the pending withdrawal.",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      })
     } catch (error) {
       console.error('Error requesting withdrawal:', error)
       setValidationError('Failed to process withdrawal request. Please try again.')
@@ -626,28 +612,57 @@ export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateT
               
               <div className="text-sm text-gray-600 space-y-1">
                 <div>Available balance: ₹{earningsData.availableBalance.toFixed(2)}</div>
+                
+                {/* Show pending withdrawals if any */}
+                {withdrawals.filter(w => w.status === 'pending').length > 0 && (
+                  <div className="text-amber-600 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                    <div className="flex items-start space-x-2">
+                      <div className="text-amber-500 mt-0.5">ℹ️</div>
+                      <div>
+                        <div className="font-medium">Pending Withdrawals:</div>
+                        <div className="text-xs">You have ₹{withdrawals.filter(w => w.status === 'pending').reduce((sum, w) => sum + w.amount, 0).toFixed(2)} in pending withdrawal requests.</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div>Processing time: 1-3 business days</div>
               </div>
               
-              <div className="flex items-center space-x-3 pt-4">
-                <Button
-                  onClick={handleWithdrawRequest}
-                  disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) > earningsData.availableBalance}
-                  className="flex-1"
-                >
-                  {loading ? 'Processing...' : 'Request Withdrawal'}
-                </Button>
+              <div className="flex flex-col space-y-3 pt-4">
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={handleWithdrawRequest}
+                    disabled={loading || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) > earningsData.availableBalance}
+                    className="flex-1"
+                  >
+                    {loading ? 'Processing...' : 'Request Withdrawal'}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowWithdrawModal(false)
+                      setWithdrawAmount('')
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
                 
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowWithdrawModal(false)
-                    setWithdrawAmount('')
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
+                {earningsData.availableBalance > 0 && (
+                  <Button
+                    onClick={() => {
+                      setWithdrawAmount(earningsData.availableBalance.toString())
+                      // If balance is less than minimum, we'll handle it in the modified handleWithdrawRequest
+                    }}
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Withdraw All (₹{earningsData.availableBalance.toFixed(2)})
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
