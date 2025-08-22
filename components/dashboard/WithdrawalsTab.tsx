@@ -469,40 +469,25 @@ export default function WithdrawalsTab({ userId, wallet }: WithdrawalsTabProps) 
                 </div>
               )}
               
-              <div className="flex flex-col space-y-3 pt-4">
-                <div className="flex items-center space-x-3">
-                  <Button
-                    onClick={handleWithdrawRequest}
-                    disabled={requesting || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) > earningsData.availableBalance}
-                    className="flex-1"
-                  >
-                    {requesting ? 'Processing...' : 'Request Withdrawal'}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowRequestModal(false)
-                      setWithdrawAmount('')
-                    }}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
+              <div className="flex items-center space-x-3 pt-4">
+                <Button
+                  onClick={handleWithdrawRequest}
+                  disabled={requesting || !withdrawAmount || parseFloat(withdrawAmount) < 500 || parseFloat(withdrawAmount) > earningsData.availableBalance}
+                  className="flex-1"
+                >
+                  {requesting ? 'Processing...' : 'Request Withdrawal'}
+                </Button>
                 
-                {earningsData.availableBalance > 0 && (
-                  <Button
-                    onClick={() => {
-                      setWithdrawAmount(earningsData.availableBalance.toString())
-                      // If balance is less than minimum, we'll handle it in the modified handleWithdrawRequest
-                    }}
-                    variant="secondary"
-                    className="w-full"
-                  >
-                    Withdraw All (₹{earningsData.availableBalance.toFixed(2)})
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowRequestModal(false)
+                    setWithdrawAmount('')
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
               </div>
             </div>
           </motion.div>
