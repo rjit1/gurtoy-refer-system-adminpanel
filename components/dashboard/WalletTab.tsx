@@ -31,6 +31,7 @@ interface WalletTabProps {
   profile: Profile
   wallet: WalletType | null
   onWalletUpdate: (wallet: WalletType) => void
+  onNavigateToWithdrawals?: () => void
 }
 
 interface EarningsData {
@@ -39,7 +40,7 @@ interface EarningsData {
   availableBalance: number
 }
 
-export default function WalletTab({ profile, wallet, onWalletUpdate }: WalletTabProps) {
+export default function WalletTab({ profile, wallet, onWalletUpdate, onNavigateToWithdrawals }: WalletTabProps) {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [editingBankDetails, setEditingBankDetails] = useState(false)
   const [bankDetails, setBankDetails] = useState<BankDetails>({
@@ -260,6 +261,16 @@ export default function WalletTab({ profile, wallet, onWalletUpdate }: WalletTab
     }
   }
 
+  const handleWithdrawNowClick = () => {
+    if (onNavigateToWithdrawals) {
+      // Navigate to withdrawals tab if navigation callback is provided
+      onNavigateToWithdrawals()
+    } else {
+      // Fallback to showing the withdraw modal
+      setShowWithdrawModal(true)
+    }
+  }
+
   const handleWithdrawRequest = async () => {
     if (!wallet || !profile.id || !withdrawAmount) return
 
@@ -378,7 +389,7 @@ export default function WalletTab({ profile, wallet, onWalletUpdate }: WalletTab
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Withdraw Funds</h2>
           <Button
-            onClick={() => setShowWithdrawModal(true)}
+            onClick={handleWithdrawNowClick}
             disabled={!canWithdraw || !hasBankDetails}
             className="flex items-center space-x-2"
           >

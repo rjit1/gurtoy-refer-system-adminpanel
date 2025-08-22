@@ -227,6 +227,10 @@ export default function DashboardPage() {
     setWallet(updatedWallet)
   }
 
+  const handleNavigateToWithdrawals = () => {
+    setActiveTab('withdrawals')
+  }
+
   const renderActiveTab = () => {
     if (!profile) return null
 
@@ -234,7 +238,7 @@ export default function DashboardPage() {
       case 'dashboard':
         return <DashboardTab profile={profile} wallet={wallet} />
       case 'wallet':
-        return <WalletTab profile={profile} wallet={wallet} onWalletUpdate={handleWalletUpdate} />
+        return <WalletTab profile={profile} wallet={wallet} onWalletUpdate={handleWalletUpdate} onNavigateToWithdrawals={handleNavigateToWithdrawals} />
       case 'referral-activity':
         return <ReferralActivityTab userId={profile.id} />
       case 'withdrawals':
