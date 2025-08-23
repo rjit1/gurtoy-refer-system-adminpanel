@@ -84,18 +84,58 @@ export default function DashboardPage() {
       let currentProfile = profileData as Profile | null
       // Create minimal profile if missing
       if (!currentProfile) {
-        const { error: insErr, data: created } = await supabase
-          .from('users')
-          .insert({
+        try {
+          console.log('Dashboard - Creating profile for user:', user.id)
+          const { error: insErr, data: created } = await supabase
+            .from('users')
+            .insert({
+              id: user.id,
+              full_name: user.user_metadata?.full_name ?? '',
+              phone: user.user_metadata?.phone ?? '',
+              kyc_status: 'pending',
+            })
+            .select('*')
+            .single()
+          
+          if (insErr) {
+            console.error('Dashboard - Error creating profile:', insErr)
+            // Try to fetch again in case of race condition (profile might have been created by another process)
+            const { data: retryProfile, error: retryError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle()
+              
+            if (retryError) {
+              console.error('Dashboard - Error fetching profile after creation attempt:', retryError)
+            } else if (retryProfile) {
+              console.log('Dashboard - Profile found on retry:', retryProfile)
+              currentProfile = retryProfile as Profile
+            }
+          } else {
+            console.log('Dashboard - Profile created successfully:', created)
+            currentProfile = (created as any) ?? null
+          }
+        } catch (err) {
+          console.error('Dashboard - Unexpected error creating profile:', err)
+        }
+        
+        // If profile creation failed, set a temporary profile to prevent "Profile Not Found" error
+        // This will allow the page to load, and the user can refresh to try again
+        if (!currentProfile) {
+          console.log('Dashboard - Using temporary profile for rendering')
+          currentProfile = {
             id: user.id,
-            full_name: user.user_metadata?.full_name ?? '',
+            full_name: user.user_metadata?.full_name ?? 'User',
             phone: user.user_metadata?.phone ?? '',
             kyc_status: 'pending',
-          })
-          .select('*')
-          .single()
-        if (insErr) console.error(insErr)
-        currentProfile = (created as any) ?? null
+            referral_code: null,
+            aadhaar_url: null,
+            selfie_url: null,
+            profile_image: null,
+            created_at: new Date().toISOString()
+          } as Profile
+        }
       }
 
       // Load or create wallet with detailed logging
@@ -274,13 +314,24 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-bg-light via-white to-blue-50">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
-          <p className="text-gray-600 mb-6">Unable to load your profile. Please try again.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Reload Page
-          </button>
+          <p className="text-gray-600 mb-6">Unable to load your profile. This can happen after email verification.</p>
+          <div className="flex flex-col space-y-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Reload Page
+            </button>
+            <p className="text-sm text-gray-500">
+              If the problem persists, try signing out and signing back in.
+            </p>
+            <button
+              onClick={handleSignOut}
+              className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     )

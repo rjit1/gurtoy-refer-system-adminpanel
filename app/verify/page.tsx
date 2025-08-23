@@ -13,13 +13,52 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const check = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) return
-      setEmail(user.email || '')
-      if (user?.email_confirmed_at) {
-        router.replace('/dashboard')
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        
+        if (!user) return
+        setEmail(user.email || '')
+        
+        if (user?.email_confirmed_at) {
+          // Before redirecting to dashboard, ensure user profile exists
+          const { data: profileData, error: profileError } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle()
+            
+          if (profileError) {
+            console.error('Verify - Error checking profile:', profileError)
+          }
+          
+          // If profile doesn't exist, create it before redirecting
+          if (!profileData) {
+            console.log('Verify - Creating profile before redirect for user:', user.id)
+            const { error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: user.id,
+                full_name: user.user_metadata?.full_name ?? '',
+                phone: user.user_metadata?.phone ?? '',
+                kyc_status: 'pending',
+              })
+              
+            if (createError) {
+              console.error('Verify - Error creating profile:', createError)
+            } else {
+              console.log('Verify - Profile created successfully')
+            }
+          }
+          
+          // Add a small delay to ensure database operations complete
+          setTimeout(() => {
+            router.replace('/dashboard')
+          }, 500)
+        }
+      } catch (err) {
+        console.error('Verify - Unexpected error:', err)
       }
     }
     check()
