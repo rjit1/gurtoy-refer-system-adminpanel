@@ -13,12 +13,9 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Load the Lottie animation with a small delay to prioritize main content rendering
+    // Load the Lottie animation
     const loadAnimation = async () => {
       try {
-        // Add a small timeout to prioritize critical rendering
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
         const response = await fetch('/animations/boy-running.json')
         if (!response.ok) {
           throw new Error('Failed to load animation')
@@ -37,10 +34,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [])
 
   useEffect(() => {
-    // Further reduced time to 1 second for better performance
+    // Reduced time to 1.5 seconds for better performance
     const timer = setTimeout(() => {
       onComplete()
-    }, 1000)
+    }, 1500)
 
     return () => clearTimeout(timer)
   }, [onComplete])

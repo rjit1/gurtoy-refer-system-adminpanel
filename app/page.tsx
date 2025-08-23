@@ -23,10 +23,7 @@ import Footer from '../components/layout/Footer'
 import Button from '../components/ui/Button'
 import SplashScreen from '../components/SplashScreen'
 
-// Add React.memo to prevent unnecessary re-renders
-import { memo } from 'react'
-
-const LandingPage = memo(function LandingPage() {
+export default function LandingPage() {
   // Start with splash hidden for better initial load performance
   const [showSplash, setShowSplash] = useState(false)
 
@@ -135,7 +132,6 @@ const LandingPage = memo(function LandingPage() {
 
   return (
     <div className="min-h-screen">
-      {/* Add priority to Header for faster rendering */}
       <Header />
       
       {/* Hero Section - Optimized for performance */}
@@ -143,9 +139,9 @@ const LandingPage = memo(function LandingPage() {
         <div className="container-max">
           <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16 2xl:gap-20 items-center" style={{minHeight: "60vh"}}>
             <motion.div
-              initial={{ opacity: 0.8, x: -20 }}
+              initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, easings: ["easeOut"] }}
+              transition={{ duration: 0.8 }}
               className="w-full text-center lg:text-left lg:order-1 py-8 xs:py-12 sm:py-0"
             >
               {/* Simplified animation for better performance */}
@@ -154,17 +150,17 @@ const LandingPage = memo(function LandingPage() {
                 <span className="text-gradient block sm:inline">Referring Friends</span>
               </h1>
               
-              {/* Preload critical LCP element with key attribute for priority rendering */}
-              <p key="hero-description" className="responsive-text-body text-gray-600 mb-6 xs:mb-8 sm:mb-10 lg:mb-12 leading-relaxed max-w-2xl mx-auto lg:mx-0" style={{ willChange: 'auto' }}>
+              {/* Removed animation for LCP element to improve performance */}
+              <p className="responsive-text-body text-gray-600 mb-6 xs:mb-8 sm:mb-10 lg:mb-12 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                 Join Gurtoy&apos;s referral program and earn 5% commission on every sale made using your referral code. 
                 Start earning today with our transparent and reliable platform.
               </p>
               
               <motion.div 
                 className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 lg:gap-8 justify-center lg:justify-start mb-8 xs:mb-10 sm:mb-12 lg:mb-16"
-                initial={{ opacity: 0.8, y: 10 }}
+                initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
+                transition={{ duration: 0.8, delay: 0.6 }}
               >
                 <Button href="/register" size="lg" className="group w-full xs:w-auto">
                   Become a Referrer
@@ -182,9 +178,9 @@ const LandingPage = memo(function LandingPage() {
 
               <motion.div 
                 className="grid grid-cols-3 gap-4 xs:gap-6 sm:gap-8 lg:gap-10 max-w-md xs:max-w-lg mx-auto lg:mx-0"
-                initial={{ opacity: 0.7 }}
+                initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
               >
                 <div className="text-center">
                   <div className="text-lg xs:text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-primary">5%</div>
@@ -202,9 +198,9 @@ const LandingPage = memo(function LandingPage() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0.8, x: 20 }}
+              initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, easings: ["easeOut"] }}
+              transition={{ duration: 0.8, delay: 0.3 }}
               className="w-full lg:order-2 relative hidden sm:block"
             >
               <div className="relative w-full h-48 xs:h-56 sm:h-80 md:h-96 lg:h-[500px] xl:h-[600px]">
@@ -519,7 +515,4 @@ const LandingPage = memo(function LandingPage() {
       <Footer />
     </div>
   )
-})
-
-// Export the memoized component
-export default LandingPage;
+}
