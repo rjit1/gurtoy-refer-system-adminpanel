@@ -24,13 +24,15 @@ import Button from '../components/ui/Button'
 import SplashScreen from '../components/SplashScreen'
 
 export default function LandingPage() {
-  const [showSplash, setShowSplash] = useState(true)
+  // Start with splash hidden for better initial load performance
+  const [showSplash, setShowSplash] = useState(false)
 
   useEffect(() => {
     // Check if splash screen has been shown before in this session
     const hasSeenSplash = sessionStorage.getItem('hasSeenSplash')
-    if (hasSeenSplash) {
-      setShowSplash(false)
+    if (!hasSeenSplash) {
+      // Only show splash if it hasn't been seen before
+      setShowSplash(true)
     }
   }, [])
 
@@ -132,35 +134,27 @@ export default function LandingPage() {
     <div className="min-h-screen">
       <Header />
       
-      {/* Hero Section */}
+      {/* Hero Section - Optimized for performance */}
       <section id="hero" className="pt-20 xs:pt-24 sm:pt-28 lg:pt-32 pb-12 xs:pb-16 sm:pb-20 lg:pb-24 bg-gradient-to-br from-gray-50 via-white to-blue-50 overflow-hidden">
         <div className="container-max">
-          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16 2xl:gap-20 items-center min-h-[60vh] xs:min-h-[65vh] sm:min-h-[70vh] lg:min-h-[85vh]">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16 2xl:gap-20 items-center" style={{minHeight: "60vh"}}>
             <motion.div
               initial={{ opacity: 0, x: -50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
               className="w-full text-center lg:text-left lg:order-1 py-8 xs:py-12 sm:py-0"
             >
-              <motion.h1 
-                className="responsive-text-hero font-bold text-gray-800 mb-4 xs:mb-6 sm:mb-8 lg:mb-10 leading-tight"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
+              {/* Simplified animation for better performance */}
+              <h1 className="responsive-text-hero font-bold text-gray-800 mb-4 xs:mb-6 sm:mb-8 lg:mb-10 leading-tight animate-fade-in">
                 Earn Commission by{' '}
                 <span className="text-gradient block sm:inline">Referring Friends</span>
-              </motion.h1>
+              </h1>
               
-              <motion.p 
-                className="responsive-text-body text-gray-600 mb-6 xs:mb-8 sm:mb-10 lg:mb-12 leading-relaxed max-w-2xl mx-auto lg:mx-0"
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-              >
+              {/* Removed animation for LCP element to improve performance */}
+              <p className="responsive-text-body text-gray-600 mb-6 xs:mb-8 sm:mb-10 lg:mb-12 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                 Join Gurtoy&apos;s referral program and earn 5% commission on every sale made using your referral code. 
                 Start earning today with our transparent and reliable platform.
-              </motion.p>
+              </p>
               
               <motion.div 
                 className="flex flex-col xs:flex-row gap-3 xs:gap-4 sm:gap-6 lg:gap-8 justify-center lg:justify-start mb-8 xs:mb-10 sm:mb-12 lg:mb-16"

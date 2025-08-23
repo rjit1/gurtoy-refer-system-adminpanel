@@ -34,10 +34,10 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   }, [])
 
   useEffect(() => {
-    // Auto-hide splash screen after 3 seconds
+    // Reduced time to 1.5 seconds for better performance
     const timer = setTimeout(() => {
       onComplete()
-    }, 3000)
+    }, 1500)
 
     return () => clearTimeout(timer)
   }, [onComplete])

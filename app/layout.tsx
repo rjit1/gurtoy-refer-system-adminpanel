@@ -4,7 +4,12 @@ import './globals.css'
 import ErrorBoundary from '../components/ErrorBoundary'
 import { ToastProvider } from '../components/ui/Toast'
 
-const inter = Inter({ subsets: ['latin'] })
+// Optimize font loading for better performance
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true
+})
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -39,6 +44,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* Preconnect to Google Fonts to improve loading performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
           <ToastProvider>
