@@ -49,8 +49,9 @@ export default function Button({
       className={classes}
       onClick={onClick}
       disabled={disabled}
-      whileHover={{ scale: disabled ? 1 : 1.05 }}
-      whileTap={{ scale: disabled ? 1 : 0.95 }}
+      whileHover={{ scale: disabled ? 1 : 1.03 }}
+      whileTap={{ scale: disabled ? 1 : 0.97 }}
+      transition={{ duration: 0.2 }}
     >
       {children}
     </motion.button>

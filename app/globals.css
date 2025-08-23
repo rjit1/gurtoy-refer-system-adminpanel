@@ -106,6 +106,9 @@
   .responsive-text-body {
     @apply text-base sm:text-lg md:text-xl;
     font-display: swap;
+    /* Add content-visibility for better rendering performance */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 1em;
   }
   
   .responsive-text-small {

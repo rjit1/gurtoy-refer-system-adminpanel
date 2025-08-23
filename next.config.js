@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Improved image optimization settings
   images: {
     domains: ['images.unsplash.com', 'via.placeholder.com', 'mknxaioosbktcyfokvfw.supabase.co'],
     remotePatterns: [
@@ -10,6 +11,15 @@ const nextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+  },
+  // Enable performance optimizations
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
   // Exclude admin-panel from main build
   webpack: (config) => {
