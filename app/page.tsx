@@ -145,7 +145,7 @@ export default function LandingPage() {
               className="w-full text-center lg:text-left lg:order-1 py-8 xs:py-12 sm:py-0"
             >
               {/* Simplified animation for better performance */}
-              <h1 className="responsive-text-hero font-bold text-gray-800 mb-4 xs:mb-6 sm:mb-8 lg:mb-10 leading-tight animate-fade-in">
+              <h1 className="responsive-text-hero font-bold text-gray-800 mb-4 xs:mb-6 sm:mb-8 lg:mb-10 leading-tight animate-fade-in" style={{ fontSize: 'clamp(1.5rem, 5vw, 4rem)' }}>
                 Earn Commission by{' '}
                 <span className="text-gradient block sm:inline">Referring Friends</span>
               </h1>

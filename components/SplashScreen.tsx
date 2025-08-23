@@ -90,7 +90,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
             transition={{ duration: 0.8, delay: 0.5 }}
             className="mb-4 sm:mb-6"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2" style={{ fontSize: 'clamp(1.875rem, 5vw, 4rem)' }}>
               Gurtoy
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-white/90 font-medium">
