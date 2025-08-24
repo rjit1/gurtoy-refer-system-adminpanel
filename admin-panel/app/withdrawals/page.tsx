@@ -129,19 +129,6 @@ export default function WithdrawalsPage() {
             title: 'Withdrawal Processed',
             message: `Your withdrawal of ${formatCurrency(selectedWithdrawal.amount)} has been processed and will be credited to your account within 2-3 business days.`
           })
-
-        // 5. Create admin notice
-        await supabase
-          .from('notices')
-          .insert({
-            title: 'Withdrawal Processed',
-            content: `Your ₹${selectedWithdrawal.amount} withdrawal was paid on ${new Date().toLocaleDateString('en-IN', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}`,
-            is_active: true
-          })
       } else {
         // Create rejection notification
         await supabase
