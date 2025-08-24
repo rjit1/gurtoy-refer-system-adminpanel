@@ -127,7 +127,7 @@ export default function WithdrawalsPage() {
             user_id: selectedWithdrawal.user_id,
             type: 'withdrawal_processed',
             title: 'Withdrawal Processed',
-            message: `Your withdrawal of ${formatCurrency(selectedWithdrawal.amount)} has been processed and will be credited to your account within 2-3 business days.`
+            message: `Your withdrawal of ${formatCurrency(selectedWithdrawal.amount)} has been processed and will be credited to your account.`
           })
       } else {
         // Create rejection notification
